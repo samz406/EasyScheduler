@@ -231,7 +231,7 @@
         this.$refs['popup'].spinnerLoading = true
 
         let queueCode = '';
-        //get queue code
+        //get queue code by queueName
         if (this.queueName != ''){
           queueCode = this.queueList.length > 0 ? _.find(this.queueList, ['id', this.queueName]).code : ''
         }
