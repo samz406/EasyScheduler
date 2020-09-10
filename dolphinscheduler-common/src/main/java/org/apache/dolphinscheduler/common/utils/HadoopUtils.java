@@ -110,7 +110,7 @@ public class HadoopUtils implements Closeable {
         try {
             configuration = new Configuration();
 
-            String resourceStorageType = PropertyUtils.getString(Constants.RESOURCE_STORAGE_TYPE);
+            String resourceStorageType = PropertyUtils.getUpperCaseString(Constants.RESOURCE_STORAGE_TYPE);
             ResUploadType resUploadType = ResUploadType.valueOf(resourceStorageType);
 
             if (resUploadType == ResUploadType.HDFS) {
@@ -159,6 +159,7 @@ public class HadoopUtils implements Closeable {
                     }
                 }
             } else if (resUploadType == ResUploadType.S3) {
+                System.setProperty(Constants.AWS_S3_V4, Constants.STRING_TRUE);
                 configuration.set(Constants.FS_DEFAULTFS, PropertyUtils.getString(Constants.FS_DEFAULTFS));
                 configuration.set(Constants.FS_S3A_ENDPOINT, PropertyUtils.getString(Constants.FS_S3A_ENDPOINT));
                 configuration.set(Constants.FS_S3A_ACCESS_KEY, PropertyUtils.getString(Constants.FS_S3A_ACCESS_KEY));
@@ -194,7 +195,7 @@ public class HadoopUtils implements Closeable {
          */
         String appUrl = "";
 
-        if (StringUtils.isEmpty(rmHaIds)){
+        if (StringUtils.isEmpty(rmHaIds)) {
             //single resourcemanager enabled
             appUrl = appAddress;
             yarnEnabled = true;
@@ -205,7 +206,7 @@ public class HadoopUtils implements Closeable {
             logger.info("application url : {}", appUrl);
         }
 
-        if(StringUtils.isBlank(appUrl)){
+        if (StringUtils.isBlank(appUrl)) {
             throw new Exception("application url is blank");
         }
         return String.format(appUrl, applicationId);
@@ -407,7 +408,7 @@ public class HadoopUtils implements Closeable {
      * @param applicationId application id
      * @return the return may be null or there may be other parse exceptions
      */
-    public ExecutionStatus getApplicationStatus(String applicationId) throws Exception{
+    public ExecutionStatus getApplicationStatus(String applicationId) throws Exception {
         if (StringUtils.isEmpty(applicationId)) {
             return null;
         }
@@ -416,20 +417,33 @@ public class HadoopUtils implements Closeable {
         String applicationUrl = getApplicationUrl(applicationId);
         logger.info("applicationUrl={}", applicationUrl);
 
-        String responseContent = HttpUtils.get(applicationUrl);
+        String responseContent;
+        if (PropertyUtils.getBoolean(Constants.HADOOP_SECURITY_AUTHENTICATION_STARTUP_STATE, false)) {
+            responseContent = KerberosHttpClient.get(applicationUrl);
+        } else {
+            responseContent = HttpUtils.get(applicationUrl);
+        }
         if (responseContent != null) {
             ObjectNode jsonObject = JSONUtils.parseObject(responseContent);
+            if (!jsonObject.has("app")) {
+                return ExecutionStatus.FAILURE;
+            }
             result = jsonObject.path("app").path("finalStatus").asText();
+
         } else {
             //may be in job history
             String jobHistoryUrl = getJobHistoryUrl(applicationId);
             logger.info("jobHistoryUrl={}", jobHistoryUrl);
             responseContent = HttpUtils.get(jobHistoryUrl);
-            ObjectNode jsonObject = JSONUtils.parseObject(responseContent);
-            if (!jsonObject.has("job")){
+            if (null != responseContent) {
+                ObjectNode jsonObject = JSONUtils.parseObject(responseContent);
+                if (!jsonObject.has("job")) {
+                    return ExecutionStatus.FAILURE;
+                }
+                result = jsonObject.path("job").path("state").asText();
+            } else {
                 return ExecutionStatus.FAILURE;
             }
-            result = jsonObject.path("job").path("state").asText();
         }
 
         switch (result) {
@@ -447,7 +461,7 @@ public class HadoopUtils implements Closeable {
 
             case Constants.RUNNING:
             default:
-                return ExecutionStatus.RUNNING_EXEUTION;
+                return ExecutionStatus.RUNNING_EXECUTION;
         }
     }
 
@@ -468,7 +482,7 @@ public class HadoopUtils implements Closeable {
     /**
      * hdfs resource dir
      *
-     * @param tenantCode tenant code
+     * @param tenantCode   tenant code
      * @param resourceType resource type
      * @return hdfs resource dir
      */
@@ -673,7 +687,7 @@ public class HadoopUtils implements Closeable {
             ObjectNode jsonObject = JSONUtils.parseObject(retStr);
 
             //get ResourceManager state
-            if (!jsonObject.has("clusterInfo")){
+            if (!jsonObject.has("clusterInfo")) {
                 return null;
             }
             return jsonObject.get("clusterInfo").path("haState").asText();

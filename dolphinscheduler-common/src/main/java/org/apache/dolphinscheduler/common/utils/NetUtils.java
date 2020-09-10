@@ -14,29 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.dolphinscheduler.common.utils;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.dolphinscheduler.common.Constants.DOLPHIN_SCHEDULER_PREFERRED_NETWORK_INTERFACE;
+
+import static java.util.Collections.emptyList;
 
 import java.io.IOException;
-import java.net.*;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
-import static java.util.Collections.emptyList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * NetUtils
  */
 public class NetUtils {
 
-
     private NetUtils() {
-        throw new IllegalStateException("Utility class");
+        throw new UnsupportedOperationException("Construct NetUtils");
     }
 
     private static Logger logger = LoggerFactory.getLogger(NetUtils.class);
@@ -171,9 +178,19 @@ public class NetUtils {
             logger.warn("ValidNetworkInterfaces exception", e);
         }
 
+        NetworkInterface result = null;
+        // Try to specify config NetWork Interface
+        for (NetworkInterface networkInterface : validNetworkInterfaces) {
+            if (isSpecifyNetworkInterface(networkInterface)) {
+                result = networkInterface;
+                break;
+            }
+        }
 
+        if (null != result) {
+            return result;
+        }
         return validNetworkInterfaces.get(0);
-
     }
 
     /**
@@ -206,4 +223,8 @@ public class NetUtils {
                 || !networkInterface.isUp();
     }
 
+    private static boolean isSpecifyNetworkInterface(NetworkInterface networkInterface) {
+        String preferredNetworkInterface = System.getProperty(DOLPHIN_SCHEDULER_PREFERRED_NETWORK_INTERFACE);
+        return Objects.equals(networkInterface.getDisplayName(), preferredNetworkInterface);
+    }
 }
