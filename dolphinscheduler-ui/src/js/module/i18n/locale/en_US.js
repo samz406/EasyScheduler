@@ -182,7 +182,6 @@ export default {
   'Last heartbeat time': 'Last heartbeat time',
   'Edit Tenant': 'Edit Tenant',
   'Tenant Code': 'Tenant Code',
-  'Tenant Name': 'Tenant Name',
   Queue: 'Yarn Queue',
   'Please select a queue': 'default is tenant association queue',
   'Please enter the tenant code in English': 'Please enter the tenant code in English',

@@ -185,7 +185,6 @@ export default {
   'Last heartbeat time': '最后心跳时间',
   'Edit Tenant': '编辑租户',
   'Tenant Code': '租户编码',
-  'Tenant Name': '租户名称',
   Queue: 'Yarn 队列',
   'Please enter the tenant code in English': '请输入租户编码只允许英文',
   'Please enter tenant code in English': '请输入英文租户编码',
